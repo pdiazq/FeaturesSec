@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Infant Death</title>
+<style>
+svg {
+  font: 8px sans-serif;
+}
+
+.foreground path {
+  fill: none;
+  stroke: #222;
+  stroke-opacity: 0.4;
+  pointer-events: none;
+  stroke-width: 1px;
+}
+/*Next block defines the form of the title for every variable, for example, incilation, font size, etc @padq */
+.axis .title {
+  font-size: 8px;
+  font-weight: bold;
+  text-transform: uppercase;
+  transform: rotate(-12deg) translate(-5px,-6px);
+}
+
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1px;
+}
+
+.brush .extent {
+  fill-opacity: .3;
+  stroke: #fff;
+  stroke-width: 1px;
+}
+
+pre {
+  width: 1500px;
+  margin: 10px 30px;
+  tab-size: 21;
+  font-size: 12px;
+  overflow: auto;
+}
+</style>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script>
+
+// Determine the size of the titles for the variables changing the "top" variable in the next line @padq
+// height enables to expand or contract the size of the parallel lines @padq
+// width enables to expand or contract the size of the parallel lines @padq
+var margin = {top: 150, right: 80, bottom: 20, left: 100},
+    width = 3000 - margin.left - margin.right,
+    height = 450 - margin.top - margin.bottom;
+
+var types = {
+  "Number": {
+    key: "Number",
+    coerce: function(d) { return +d; },
+    extent: d3.extent,
+    within: function(d, extent) { return extent[0] <= d && d <= extent[1]; },
+    defaultScale: d3.scale.linear().range([height, 0])
+  },
+  "String": {
+    key: "String",
+    coerce: String,
+    extent: function (data) { return data.sort(); },
+    within: function(d, extent, dim) { return extent[0] <= dim.scale(d) && dim.scale(d) <= extent[1]; },
+    defaultScale: d3.scale.ordinal().rangePoints([0, height])
+  },
+  "Date": {
+    key: "Date",
+    coerce: function(d) { return new Date(d); },
+    extent: d3.extent,
+    within: function(d, extent) { return extent[0] <= d && d <= extent[1]; },
+    defaultScale: d3.time.scale().range([0, height])
+  }
+};
+
+var dimensions = [
+  {
+    key: "OFICINA",
+    description: "OFICINA",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d) { return d.slice(0,12); })
+  },
+  {
+    key: "FEATURE1",
+    description: "This WS-C3650-48PQ device is vulnerable to Software Defect - CSCuu97048: Traffic is dropped due to static mac entry on foreign interface",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d) { return d.slice(0,12); })
+
+  },
+  {
+    key: "FEATURE2",
+    description: "Restrict SNMP community access with ACL as a security best practice",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 3 != 0) return "";   // hide 2/3 tick labels
+        return d.slice(0,12);
+      })
+
+  },
+  {
+    key: "FEATURE3",
+    description: "This WS-C3650-48PQ device is vulnerable to Software Defect - CSCvc38159: IP phones LLDP/CDP enabled rebooting - Documentation defect",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d) { return d.slice(0,12); })
+  },
+  {
+    key: "FEATURE4",
+    description: "The device's clock is incorrect",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 2 != 0) return "";   // hide 1/2 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE5",
+    description: "Improve the Security Posture of the Device by Disabling SSH version 1",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 2 != 0) return "";   // hide 1/2 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE6",
+    description: "The clock on this device is not 'authoritative' and may be incorrect",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 5 != 0) return "";   // hide 4/5 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE7",
+    description: "IP HTTP Server is enabled, which is a deviation from the router security hardening best practices",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE8",
+    description: "Found missing router security best practices",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE9",
+    description: "No K9 image detected",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE10",
+    description: "IP Source Routing is enabled, which is a deviation from the router security hardening best practices",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE11",
+    description: "Syslog entries found in show logging (severity warning or higher)",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE12",
+    description: "Improve the Security Posture of the Device by Disabling Telnet",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE13",
+    description: "Evaluation period left",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE14",
+    description: "SNMP is enabled but not running version 3, which is a security best practice",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  },
+  {
+    key: "FEATURE15",
+    description: "Enable password use detected which uses weak hashing techniques",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE16",
+    description: "IP Bootp Server is enabled, which is a deviation from the router security hardening best practices",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE17",
+    description: "Service password encryption disabled causing cleartext passwords to be saved in the configuration",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE18",
+    description: "Unencrypted Password(s) found in the Configuration",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE19",
+    description: "CEF is disabled for some interfaces",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE20",
+    description: "Type 7 (insecure) password detected in config. This is a security best practice violation",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE21",
+    description: "This device may have hit Software Defect - CSCuq89605: Switch does not show the configured duplex value",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE22",
+    description: "This device may have hit Software Defect - CSCtn42790: 3560X/3750X: Elevated CPU usage due to Hulc LED process",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE23",
+    description: "Type 4 password or secret found, which is insecure and deprecated",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE24",
+    description: "EXEC facility timeout is disabled, which is a deviation from the router security hardening best practices",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE25",
+    description: "Significant interface input errors",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE26",
+    description: "Significant interface CRC errors",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE27",
+    description: "Interface is Half-duplex",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE28",
+    description: "One of the interfaces is in inconsistent state from spanning-tree perspective which could impact proper packet forwarding.",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  }, 
+  {
+    key: "FEATURE29",
+    description: "The data from this device was evaluated against 992 different diagnostic checks.",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+      .tickFormat(function(d,i) {
+        if (i % 6 != 0) return "";   // hide 5/6 tick labels
+        return d.slice(0,12);
+      })
+  },                                          
+  {
+    key: "IOS",
+    description: "IOS",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+  },    
+  {
+    key: "SW",
+    description: "SW",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+  },
+  {
+    key: "IOS_MAIN",
+    description: "IOS_MAIN",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+  },
+  {
+    key: "IOS_TYPE",
+    description: "IOS_TYPE",
+    type: types["String"],
+    axis: d3.svg.axis().orient("left")
+  }
+];
+
+var x = d3.scale.ordinal()
+    .domain(dimensions.map(function(dim) { return dim.key; }))
+    .rangePoints([0, width]);
+
+var line = d3.svg.line()
+    .defined(function(d) { return !isNaN(d[1]); });
+
+var yAxis = d3.svg.axis()
+    .orient("left");
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var output = d3.select("body").append("pre");
+
+var foreground = svg.append("g")
+  .attr("class", "foreground");
+
+var axes = svg.selectAll(".axis")
+    .data(dimensions)
+  .enter().append("g")
+    .attr("class", "axis")
+    .attr("transform", function(d) { return "translate(" + x(d.key) + ")"; });
+
+d3.dsv("|", "text/plain")("accidents.txt", function(error, data) {
+  if (error) throw error;
+
+  data.forEach(function(d) {
+    for (var k in d) {
+      // truncate values
+      d[k] = d[k].slice(0,20);
+    };
+    dimensions.forEach(function(p) {
+      d[p.key] = p.type.coerce(d[p.key]);
+    });
+  });
+
+  // type/dimension default setting happens here
+  dimensions.forEach(function(dim) {
+    if (!("domain" in dim)) {
+      // detect domain using dimension type's extent function
+      dim.domain = d3.functor(dim.type.extent)(data.map(function(d) { return d[dim.key]; }));
+
+      // TODO - this line only works because the data encodes data with integers
+      // Sorting/comparing should be defined at the type/dimension level
+      dim.domain.sort(function(a,b) {
+        return a - b;
+      });
+    }
+    if (!("scale" in dim)) {
+      // use type's default scale for dimension
+      dim.scale = dim.type.defaultScale.copy();
+    }
+    dim.scale.domain(dim.domain);
+  });
+
+  foreground.selectAll("path")
+      .data(data)
+    .enter().append("path")
+      .attr("d", draw)
+      .style("stroke", function(d) { return "#6ac"; });
+
+  axes.append("g")
+      .attr("class", "axis")
+      .each(function(d) {
+        var renderAxis = "axis" in d
+          ? d.axis.scale(d.scale)  // custom axis
+          : yAxis.scale(d.scale);  // default axis
+        d3.select(this).call(renderAxis);
+      })
+    .append("text")
+      .attr("class", "title")
+      .attr("text-anchor", "start")
+      .text(function(d) { return "description" in d ? d.description : d.key; });
+
+  // Add and store a brush for each axis.
+  axes.append("g")
+      .attr("class", "brush")
+      .each(function(d) {
+        d3.select(this).call(d.brush = d3.svg.brush()
+          .y(d.scale)
+          .on("brushstart", brushstart)
+          .on("brush", brush));
+      })
+    .selectAll("rect")
+      .attr("x", -8)
+      .attr("width", 16);
+
+  output.text(d3.tsv.format(data));
+
+  function draw(d) {
+    return line(dimensions.map(function(dim) {
+      return [x(dim.key), dim.scale(d[dim.key])];
+    }));
+  }
+
+  function brushstart() {
+    d3.event.sourceEvent.stopPropagation();
+  }
+
+  // Handles a brush event, toggling the display of foreground lines.
+  function brush() {
+    var actives = dimensions.filter(function(p) { return !p.brush.empty(); }),
+        extents = actives.map(function(p) { return p.brush.extent(); });
+
+    var selected = [];
+
+    d3.selectAll(".foreground path").style("display", function(d) {
+      if (actives.every(function(dim, i) {
+          // test if point is within extents for each active brush
+          return dim.type.within(d[dim.key], extents[i], dim);
+        })) {
+        selected.push(d);
+        return null;
+      }
+      return "none";
+    });
+
+    output.text(d3.tsv.format(selected));
+  }
+});
+
+</script>
